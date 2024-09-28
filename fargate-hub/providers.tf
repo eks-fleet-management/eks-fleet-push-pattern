@@ -64,7 +64,11 @@ provider "aws" {
   alias  = "public-ecr"
 }
 
-# terraform {
-#   backend "s3" {
-#   }
-# }
+terraform {
+  backend "s3" {
+    bucket         = "hub-spoke-push-mk"
+    key            = "hub-spoke-push/hub/terraform.tfstate"
+    region         = "eu-west-2"
+    encrypt        = true
+  }
+}
