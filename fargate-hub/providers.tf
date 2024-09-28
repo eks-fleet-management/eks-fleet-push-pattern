@@ -11,7 +11,8 @@ provider "helm" {
         "eks",
         "get-token",
         "--cluster-name", module.eks.cluster_name,
-        "--region", local.region
+        "--region", local.region,
+        # "--role-arn", "arn:aws:iam::471112582304:role/cross-account-role"
       ]
     }
   }
@@ -30,7 +31,8 @@ provider "kubernetes" {
       "eks",
       "get-token",
       "--cluster-name", module.eks.cluster_name,
-      "--region", local.region
+      "--region", local.region,
+      # "--role-arn", "arn:aws:iam::471112582304:role/cross-account-role"
     ]
   }
 }
@@ -50,15 +52,23 @@ provider "kubectl" {
 }
 
 provider "aws" {
-  alias  = "public-ecr"
-  region = "us-east-1"
+  region = "eu-west-2"
+  # assume_role {
+  #   role_arn     = "arn:aws:iam::471112582304:role/cross-account-role"
+  #   session_name = "cross-account"
+  # }
 }
 
 provider "aws" {
-  region = "eu-west-2"
+  region = "us-east-1"
+  alias  = "public-ecr"
 }
 
-# terraform {
-#   backend "s3" {
-#   }
-# }
+terraform {
+  backend "s3" {
+    bucket         = "hub-spoke-push-mk"
+    key            = "hub-spoke-push/hub/terraform.tfstate"
+    region         = "eu-west-2"
+    encrypt        = true
+  }
+}

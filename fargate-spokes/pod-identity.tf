@@ -1,31 +1,4 @@
 ################################################################################
-# External Secrets EKS Access
-################################################################################
-# module "external_secrets_pod_identity" {
-#   source  = "terraform-aws-modules/eks-pod-identity/aws"
-#   version = "~> 1.4.0"
-
-#   name = "external-secrets"
-
-#   attach_external_secrets_policy        = true
-#   external_secrets_ssm_parameter_arns   = ["arn:aws:ssm:*:*:parameter/*"]         # In case you want to restrict access to specific SSM parameters "arn:aws:ssm:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:parameter/${local.name}/*"
-#   external_secrets_secrets_manager_arns = ["arn:aws:secretsmanager:*:*:secret:*"] # In case you want to restrict access to specific Secrets Manager secrets "arn:aws:secretsmanager:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:secret:${local.name}/*"
-#   external_secrets_kms_key_arns         = ["arn:aws:kms:*:*:key/*"]               # In case you want to restrict access to specific KMS keys "arn:aws:kms:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:key/*"
-#   external_secrets_create_permission    = false
-
-#   # Pod Identity Associations
-#   associations = {
-#     addon = {
-#       cluster_name    = module.eks.cluster_name
-#       namespace       = local.external_secrets.namespace
-#       service_account = local.external_secrets.service_account
-#     }
-#   }
-
-#   tags = local.tags
-# }
-
-################################################################################
 # CloudWatch Observability EKS Access
 ################################################################################
 module "aws_cloudwatch_observability_pod_identity" {
@@ -94,4 +67,61 @@ module "aws_lb_controller_pod_identity" {
   }
 
   tags = local.tags
+}
+
+################################################################################
+# Karpenter EKS Access
+################################################################################
+
+module "karpenter" {
+  source  = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version = "~> 20.23.0"
+
+  cluster_name = module.eks.cluster_name
+
+  enable_pod_identity             = true
+  create_pod_identity_association = true
+
+  namespace                     = local.karpenter.namespace
+  service_account               = local.karpenter.service_account
+  node_iam_role_use_name_prefix = false
+
+  # Used to attach additional IAM policies to the Karpenter node IAM role
+  node_iam_role_additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+  tags = local.tags
+}
+
+module "external_dns_pod_identity" {
+  source  = "terraform-aws-modules/eks-pod-identity/aws"
+  version = "~> 1.4.0"
+
+  name = "external_dns"
+
+  attach_external_dns_policy = true
+  attach_custom_policy       = true
+  policy_statements = [
+    {
+      sid       = "Extra"
+      actions   = ["route53:ChangeResourceRecordSets"]
+      resources = [data.aws_route53_zone.selected.arn]
+    }
+  ]
+  external_dns_hosted_zone_arns = [data.aws_route53_zone.selected.arn]
+  # Pod Identity Associations
+  associations = {
+    addon = {
+      cluster_name    = module.eks.cluster_name
+      namespace       = "external-dns"
+      service_account = "external-dns-sa"
+    }
+  }
+
+  tags = local.tags
+}
+
+data "aws_route53_zone" "selected" {
+  name = var.route53_zone_name
 }

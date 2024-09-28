@@ -1,13 +1,11 @@
 locals {
-  name             = "fleet-hub-cluster-b"
+  name             = "hub-cluster-fargate"
   environment      = "control-plane"
   fleet_member     = "control-plane"
   tenant           = "control-plane"
   region           = data.aws_region.current.id
   cluster_version  = var.kubernetes_version
   argocd_namespace = "argocd"
-  vpc_cidr         = var.vpc_cidr
-  azs              = slice(data.aws_availability_zones.available.names, 0, 3)
 
   external_secrets = {
     namespace       = "external-secrets"
@@ -17,12 +15,24 @@ locals {
     namespace       = "kube-system"
     service_account = "aws-load-balancer-controller-sa"
   }
+  karpenter = {
+    namespace       = "kube-system"
+    service_account = "karpenter"
+    role_name       = "karpenter-fargate"
+  }
+
+  external_dns = {
+    namespace       = "external-dns"
+    service_account = "external-dns-sa"
+    domain_filters  = "eks.kandylis.co.uk"
+  }
 
   aws_addons = {
     enable_cert_manager                          = try(var.addons.enable_cert_manager, false)
     enable_aws_efs_csi_driver                    = try(var.addons.enable_aws_efs_csi_driver, false)
     enable_aws_fsx_csi_driver                    = try(var.addons.enable_aws_fsx_csi_driver, false)
     enable_aws_cloudwatch_metrics                = try(var.addons.enable_aws_cloudwatch_metrics, false)
+    enable_aws_cloudwatch_observability          = try(var.addons.enable_aws_cloudwatch_observability, false)
     enable_aws_privateca_issuer                  = try(var.addons.enable_aws_privateca_issuer, false)
     enable_cluster_autoscaler                    = try(var.addons.enable_cluster_autoscaler, false)
     enable_external_dns                          = try(var.addons.enable_external_dns, false)
@@ -85,18 +95,21 @@ locals {
     },
     {
       addons_repo_url        = "https://github.com/eks-fleet-management/gitops-addons.git"
-      addons_repo_basepath   = var.gitops_addons_basepath
-      addons_repo_path       = var.gitops_addons_path
-      addons_repo_revision   = var.gitops_addons_revision
-      addons_repo_secret_key = var.secret_name_git_data_addons
+      addons_repo_basepath   = ""
+      addons_repo_path       = "bootstrap"
+      addons_repo_revision   = "gitops-v1"
+      # addons_repo_secret_key = var.secret_name_git_data_addons
     },
     {
-      fleet_repo_url        = "${var.gitops_org}/${var.gitops_fleet_repo_name}"
-      fleet_repo_basepath   = var.gitops_fleet_basepath
-      fleet_repo_path       = var.gitops_fleet_path
-      fleet_repo_revision   = var.gitops_fleet_revision
-      fleet_repo_secret_key = var.secret_name_git_data_fleet
-
+      karpenter_namespace          = local.karpenter.namespace
+      karpenter_service_account    = local.karpenter.service_account
+      karpenter_node_iam_role_name = local.karpenter.role_name
+      karpenter_sqs_queue_name     = module.karpenter.queue_name
+    },
+    {
+      external_dns_namespace       = local.external_dns.namespace
+      external_dns_domain_filters  = local.external_dns.domain_filters
+      external_dns_service_account = local.external_dns.service_account
     },
     {
       external_secrets_namespace       = local.external_secrets.namespace
@@ -110,6 +123,7 @@ locals {
 
   argocd_apps = {
     addons = file("${path.module}/bootstrap/addons.yaml")
+    # fleet  = file("${path.module}/bootstrap/fleet.yaml")
   }
   role_arns = []
   # # Generate dynamic access entries for each admin rolelocals {
@@ -126,6 +140,7 @@ locals {
       }
     }
   }
+
 
   # Merging dynamic entries with static entries if needed
   access_entries = merge({}, local.admin_access_entries)

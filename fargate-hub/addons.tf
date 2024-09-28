@@ -12,6 +12,12 @@ module "eks_blueprints_addons" {
 
   # Using GitOps Bridge
   create_kubernetes_resources = false
+  eks_addons = {
+    aws-ebs-csi-driver = {
+      most_recent         = true
+    }
+  }
+
   # EKS Blueprints Addons
   enable_cert_manager                 = local.aws_addons.enable_cert_manager
   enable_aws_efs_csi_driver           = local.aws_addons.enable_aws_efs_csi_driver

@@ -9,10 +9,9 @@ locals {
   argocd_namespace        = "argocd"
 
   external_secrets = {
-    namespace             = "external-secrets"
-    service_account       = "external-secrets-sa"
-    namespace_fleet       = "kube-fleet"
-    service_account_fleet = "external-secrets-kube-fleet-sa"
+    namespace       = "external-secrets"
+    service_account = "external-secrets-sa"
+    namespace_fleet = "argocd"
   }
   aws_load_balancer_controller = {
     namespace       = "kube-system"
@@ -21,6 +20,12 @@ locals {
   karpenter = {
     namespace       = "karpenter"
     service_account = "karpenter"
+  }
+
+  external_dns = {
+    namespace       = "external-dns"
+    service_account = "external-dns-sa"
+    domain_filters  = var.route53_zone_name
   }
 
 
@@ -93,10 +98,15 @@ locals {
       karpenter_sqs_queue_name     = module.karpenter.queue_name
     },
     {
+      external_dns_namespace       = local.external_dns.namespace
+      external_dns_domain_filters  = local.external_dns.domain_filters
+      external_dns_service_account = local.external_dns.service_account
+    },
+    {
       external_secrets_namespace             = local.external_secrets.namespace
       external_secrets_service_account       = local.external_secrets.service_account
       external_secrets_namespace_fleet       = local.external_secrets.namespace_fleet
-      external_secrets_service_account_fleet = local.external_secrets.service_account_fleet
+      external_secrets_service_account_fleet = local.external_secrets.service_account
     },
     {
       aws_load_balancer_controller_namespace       = local.aws_load_balancer_controller.namespace

@@ -6,6 +6,13 @@ variable "kubernetes_version" {
 variable "addons" {
   description = "EKS addons"
   type        = any
+  default = {
+    enable_aws_load_balancer_controller = true
+    enable_metrics_server               = true
+    enable_karpenter                    = true
+    enable_aws_efs_csi_driver           = true
+    enable_external_dns                 = true
+  }
 }
 
 variable "kms_key_admin_roles" {
@@ -13,6 +20,10 @@ variable "kms_key_admin_roles" {
   type        = list(string)
   default     = []
 
+}
+
+variable "route53_zone_name" {
+  description = "the Name of Route53 zone for external dns"
 }
 
 

@@ -12,18 +12,19 @@ data "aws_iam_session_context" "current" {
   # Ref https://github.com/hashicorp/terraform-provider-aws/issues/28381
   arn = data.aws_caller_identity.current.arn
 }
-
 data "aws_iam_roles" "eks_admin_role" {
   name_regex = "AWSReservedSSO_AdministratorAccess_.*"
 }
 
+data "aws_route53_zone" "selected" {
+  name = var.route53_zone_name
+}
+
 data "aws_vpc" "vpc" {
   filter {
-    name = "tag:Name"
-    # values = [local.name]
-    values = ["T1-Workload2-Prod"]
+    name   = "tag:Name"
+    values = ["SharedServices"]
   }
-
 }
 
 data "aws_subnets" "intra_subnets" {
