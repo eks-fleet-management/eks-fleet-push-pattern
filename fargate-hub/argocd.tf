@@ -62,10 +62,10 @@ module "gitops_bridge_bootstrap" {
   argocd = {
     name             = "argocd"
     namespace        = local.argocd_namespace
-    chart_version    = "7.4.1"
+    chart_version    = "7.6.5"
     values           = [file("${path.module}/argocd-initial-values.yaml")]
     timeout          = 600
     create_namespace = false
   }
-  depends_on = [kubernetes_secret.git_secrets,kubectl_manifest.karpenter_init_nodepool]
+  depends_on = [kubernetes_secret.git_secrets, kubectl_manifest.karpenter_init_nodepool]
 }

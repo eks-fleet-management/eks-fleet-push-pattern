@@ -12,30 +12,24 @@ module "eks_blueprints_addons" {
 
   # Using GitOps Bridge
   create_kubernetes_resources = false
-
-  karpenter_node = {
-    # Use static name so that it matches what is defined in `karpenter.yaml` example manifest
-    iam_role_use_name_prefix = false
+  eks_addons = {
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
   }
+
   # EKS Blueprints Addons
-  enable_cert_manager           = local.aws_addons.enable_cert_manager
-  enable_aws_efs_csi_driver     = local.aws_addons.enable_aws_efs_csi_driver
-  enable_aws_fsx_csi_driver     = local.aws_addons.enable_aws_fsx_csi_driver
-  enable_aws_cloudwatch_metrics = local.aws_addons.enable_aws_cloudwatch_metrics
-  enable_aws_privateca_issuer   = local.aws_addons.enable_aws_privateca_issuer
-  enable_cluster_autoscaler     = local.aws_addons.enable_cluster_autoscaler
-  enable_external_dns           = local.aws_addons.enable_external_dns
-  # using pod identity for external secrets we don't need this
-  #enable_external_secrets             = local.aws_addons.enable_external_secrets
-  # using pod identity for external secrets we don't need this
-  #enable_aws_load_balancer_controller = local.aws_addons.enable_aws_load_balancer_controller
+  enable_cert_manager                 = local.aws_addons.enable_cert_manager
+  enable_aws_efs_csi_driver           = local.aws_addons.enable_aws_efs_csi_driver
+  enable_aws_fsx_csi_driver           = local.aws_addons.enable_aws_fsx_csi_driver
+  enable_aws_cloudwatch_metrics       = local.aws_addons.enable_aws_cloudwatch_metrics
+  enable_aws_privateca_issuer         = local.aws_addons.enable_aws_privateca_issuer
+  enable_cluster_autoscaler           = local.aws_addons.enable_cluster_autoscaler
   enable_fargate_fluentbit            = local.aws_addons.enable_fargate_fluentbit
   enable_aws_for_fluentbit            = local.aws_addons.enable_aws_for_fluentbit
   enable_aws_node_termination_handler = local.aws_addons.enable_aws_node_termination_handler
-  # using pod identity for karpenter we don't need this
-  #enable_karpenter                    = local.aws_addons.enable_karpenter
-  enable_velero                     = local.aws_addons.enable_velero
-  enable_aws_gateway_api_controller = local.aws_addons.enable_aws_gateway_api_controller
+  enable_velero                       = local.aws_addons.enable_velero
+  enable_aws_gateway_api_controller   = local.aws_addons.enable_aws_gateway_api_controller
 
   tags = local.tags
 }

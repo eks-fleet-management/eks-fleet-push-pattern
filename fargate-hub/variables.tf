@@ -43,3 +43,11 @@ variable "route53_zone_name" {
   description = "The route53 zone for external dns"
   default     = "eks.kandylis.co.uk"
 }
+
+variable "manifests" {
+  description = "Kubernetes manifests"
+  type        = any
+  default = {
+    enable_external_secrets_manifests = true
+  }
+}

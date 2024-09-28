@@ -1,10 +1,4 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ROOTDIR="$(cd ${SCRIPTDIR}/../..; pwd )"
-[[ -n "${DEBUG:-}" ]] && set -x
+#!/bin/bash
 
 if [[ $# -eq 0 ]] ; then
     echo "No arguments supplied"
@@ -13,9 +7,11 @@ if [[ $# -eq 0 ]] ; then
     exit 1
 fi
 env=$1
+echo "Deploying $env with "tenants/${env}.tfvars" ..."
 
-echo "Deploying $env with "workspaces/${env}.tfvars" ..."
+set -x
 
-terraform -chdir=$SCRIPTDIR init --upgrade
-terraform -chdir=$SCRIPTDIR workspace select -or-create $env
-terraform -chdir=$SCRIPTDIR apply -var-file="workspaces/${env}.tfvars" -auto-approve
+terraform workspace new $env
+terraform workspace select $env
+terraform init
+terraform apply -var-file="tenants/${env}.tfvars"

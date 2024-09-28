@@ -9,9 +9,7 @@ module "eks" {
   cluster_name                   = local.name
   cluster_version                = local.cluster_version
   cluster_endpoint_public_access = true
-
-  # Disabling encryption for workshop purposes
-  cluster_encryption_config = {}
+  authentication_mode            = "API"
 
   vpc_id     = data.aws_vpc.vpc.id
   subnet_ids = data.aws_subnets.intra_subnets.ids
@@ -64,7 +62,7 @@ module "eks" {
       # the addon is configured before data plane compute resources are created
       # See README for further details
       # before_compute = true
-      most_recent    = true # To ensure access to the latest settings provided
+      most_recent = true # To ensure access to the latest settings provided
       configuration_values = jsonencode({
         env = {
           # Reference docs https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html
@@ -75,7 +73,7 @@ module "eks" {
       })
     }
   }
-  
+
   tags = merge(local.tags, {
     # NOTE - if creating multiple security groups with this module, only tag the
     # security group that Karpenter should utilize with the following tag
@@ -101,7 +99,7 @@ module "karpenter" {
   enable_irsa                     = true
   irsa_oidc_provider_arn          = module.eks.oidc_provider_arn
   irsa_namespace_service_accounts = ["kube-system:karpenter"]
-  
+
   node_iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }
@@ -134,18 +132,18 @@ resource "helm_release" "karpenter" {
     EOT
   ]
 
-  # lifecycle {
-  #   ignore_changes = [
-  #     repository_password
-  #   ]
-  # }
+  lifecycle {
+    ignore_changes = [
+      repository_password
+    ]
+  }
 }
 
 # Initial Karpenter Configuration for platform addons
 
 resource "kubectl_manifest" "karpenter_init_nodeclass" {
-  depends_on          = [helm_release.karpenter]
-  yaml_body = <<-YAML
+  depends_on = [helm_release.karpenter]
+  yaml_body  = <<-YAML
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
@@ -167,7 +165,7 @@ spec:
 
 resource "kubectl_manifest" "karpenter_init_nodepool" {
   depends_on = [kubectl_manifest.karpenter_init_nodeclass]
-  yaml_body = <<-YAML
+  yaml_body  = <<-YAML
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:

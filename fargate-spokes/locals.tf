@@ -1,12 +1,11 @@
 locals {
-  name                    = "fleet-spoke-${terraform.workspace}"
-  environment             = terraform.workspace
-  tenant                  = var.tenant
-  region                  = data.aws_region.current.id
-  cluster_version         = var.kubernetes_version
-  account_config          = var.env_config[terraform.workspace]
-  shared_services_account = var.default_env_config["SharedServicesAccount"]
-  argocd_namespace        = "argocd"
+  account_config   = var.env_config[terraform.workspace]
+  name             = "spoke-${terraform.workspace}"
+  environment      = terraform.workspace
+  tenant           = var.tenant
+  region           = data.aws_region.current.id
+  cluster_version  = var.kubernetes_version
+  argocd_namespace = "argocd"
 
   external_secrets = {
     namespace       = "external-secrets"
@@ -18,18 +17,20 @@ locals {
     service_account = "aws-load-balancer-controller-sa"
   }
   karpenter = {
-    namespace       = "karpenter"
+    namespace       = "kube-system"
     service_account = "karpenter"
+    role_name       = "karpenter-fargate"
   }
 
   external_dns = {
     namespace       = "external-dns"
     service_account = "external-dns-sa"
-    domain_filters  = var.route53_zone_name
+    domain_filters  = try(var.route53_zone_name, "")
   }
 
 
   aws_addons = {
+    enable_aws_cloudwatch_observability          = try(var.addons.enable_aws_cloudwatch_observability, false)
     enable_cert_manager                          = try(var.addons.enable_cert_manager, false)
     enable_aws_efs_csi_driver                    = try(var.addons.enable_aws_efs_csi_driver, false)
     enable_aws_fsx_csi_driver                    = try(var.addons.enable_aws_fsx_csi_driver, false)
@@ -74,9 +75,14 @@ locals {
     enable_secrets_store_csi_driver        = try(var.addons.enable_secrets_store_csi_driver, false)
     enable_vpa                             = try(var.addons.enable_vpa, false)
   }
+  manifests = {
+    enable_external_secrets_manifests = try(var.manifests.enable_external_secrets_manifests, false)
+  }
+
   addons = merge(
     local.aws_addons,
     local.oss_addons,
+    local.manifests,
     { tenant = local.tenant },
     { kubernetes_version = local.cluster_version },
     { aws_cluster_name = module.eks.cluster_name }
@@ -85,11 +91,10 @@ locals {
   addons_metadata = merge(
     module.eks_blueprints_addons.gitops_metadata,
     {
-      aws_cluster_name                           = module.eks.cluster_name
-      aws_region                                 = local.region
-      aws_account_id                             = data.aws_caller_identity.current.account_id
-      aws_vpc_id                                 = data.aws_vpc.vpc.id
-      external_secrets_service_crossaccount_role = aws_iam_role.shared_services_secret_access_role.arn
+      aws_cluster_name = module.eks.cluster_name
+      aws_region       = local.region
+      aws_account_id   = data.aws_caller_identity.current.account_id
+      aws_vpc_id       = data.aws_vpc.vpc.id
     },
     {
       karpenter_namespace          = local.karpenter.namespace
@@ -111,7 +116,22 @@ locals {
     {
       aws_load_balancer_controller_namespace       = local.aws_load_balancer_controller.namespace
       aws_load_balancer_controller_service_account = local.aws_load_balancer_controller.service_account
-    }
+    },
+    {
+      addons_repo_url      = "https://github.com/eks-fleet-management/gitops-addons.git"
+      addons_repo_basepath = ""
+      addons_repo_path     = "bootstrap/addons"
+      addons_repo_revision = "gitops-v1"
+      # addons_repo_secret_key = var.secret_name_git_data_addons
+    },
+    # Setings of the gitops manifests repo
+    {
+      manifests_repo_url           = "https://github.com/eks-fleet-management/gitops-addons.git"
+      manifests_repo_basepath      = ""
+      manifests_repo_path          = "bootstrap/manifests"
+      manifests_repo_revision      = "gitops-v1"
+      manifests_manifests_basepath = ""
+    },
   )
 
   tags = {

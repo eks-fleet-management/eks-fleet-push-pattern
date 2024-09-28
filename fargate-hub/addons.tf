@@ -14,7 +14,7 @@ module "eks_blueprints_addons" {
   create_kubernetes_resources = false
   eks_addons = {
     aws-ebs-csi-driver = {
-      most_recent         = true
+      most_recent = true
     }
   }
 

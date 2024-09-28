@@ -7,7 +7,7 @@ module "external_secrets_pod_identity" {
   version = "~> 1.4.0"
 
   name = "external-secrets"
-  
+
   attach_custom_policy = true
   policy_statements = [
     {

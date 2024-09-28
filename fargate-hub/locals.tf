@@ -73,9 +73,15 @@ locals {
     enable_secrets_store_csi_driver        = try(var.addons.enable_secrets_store_csi_driver, false)
     enable_vpa                             = try(var.addons.enable_vpa, false)
   }
+
+  manifests = {
+    enable_external_secrets_manifests = try(var.manifests.enable_external_secrets_manifests, false)
+  }
+
   addons = merge(
     local.aws_addons,
     local.oss_addons,
+    local.manifests,
     { tenant = local.tenant },
     { fleet_member = local.fleet_member },
     { kubernetes_version = local.cluster_version },
@@ -94,11 +100,19 @@ locals {
       create_argocd_namespace = false
     },
     {
-      addons_repo_url        = "https://github.com/eks-fleet-management/gitops-addons.git"
-      addons_repo_basepath   = ""
-      addons_repo_path       = "bootstrap"
-      addons_repo_revision   = "gitops-v1"
+      addons_repo_url      = "https://github.com/eks-fleet-management/gitops-addons.git"
+      addons_repo_basepath = ""
+      addons_repo_path     = "bootstrap/addons"
+      addons_repo_revision = "gitops-v1"
       # addons_repo_secret_key = var.secret_name_git_data_addons
+    },
+    # Setings of the gitops manifests repo
+    {
+      manifests_repo_url           = "https://github.com/eks-fleet-management/gitops-addons.git"
+      manifests_repo_basepath      = ""
+      manifests_repo_path          = "bootstrap/manifests"
+      manifests_repo_revision      = "gitops-v1"
+      manifests_manifests_basepath = ""
     },
     {
       karpenter_namespace          = local.karpenter.namespace
@@ -122,8 +136,8 @@ locals {
   )
 
   argocd_apps = {
-    addons = file("${path.module}/bootstrap/addons.yaml")
-    # fleet  = file("${path.module}/bootstrap/fleet.yaml")
+    addons    = file("${path.module}/bootstrap/addons.yaml")
+    manifests = file("${path.module}/manifests/manifests.yaml")
   }
   role_arns = []
   # # Generate dynamic access entries for each admin rolelocals {

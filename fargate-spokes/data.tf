@@ -9,6 +9,10 @@ data "aws_iam_session_context" "current" {
   # Ref https://github.com/hashicorp/terraform-provider-aws/issues/28381
   arn = data.aws_caller_identity.current.arn
 }
+
+data "aws_ecrpublic_authorization_token" "token" {
+  provider = aws.public-ecr
+}
 data "aws_iam_roles" "eks_admin_role" {
   name_regex = "AWSReservedSSO_AdministratorAccess_.*"
 }
