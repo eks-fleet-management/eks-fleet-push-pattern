@@ -1,5 +1,5 @@
 ################################################################################
-# GitOps Bridge: Namespace
+# GitOps Bridge: Private ssh keys for git
 ################################################################################
 resource "kubernetes_namespace" "argocd" {
   depends_on = [module.eks]
@@ -7,50 +7,44 @@ resource "kubernetes_namespace" "argocd" {
     name = local.argocd_namespace
   }
 }
-
-################################################################################
-# ArgoCD Pod identity
-################################################################################
-module "argocd_hub_pod_identity" {
-  source  = "terraform-aws-modules/eks-pod-identity/aws"
-  version = "~> 1.4.0"
-
-  name = "argocd"
-
-  attach_custom_policy = true
-  policy_statements = [
-    {
-      sid       = "ArgoCD"
-      actions   = ["sts:AssumeRole", "sts:TagSession"]
-      resources = ["*"]
+resource "kubernetes_secret" "git_secrets" {
+  depends_on = [kubernetes_namespace.argocd]
+  for_each = {
+    git-addons = {
+      type = "git"
+      url  = "https://github.com/eks-fleet-management/gitops-addons.git"
     }
-  ]
-
-  # Pod Identity Associations
-  association_defaults = {
-    namespace = "argocd"
-  }
-  associations = {
-    controller = {
-      cluster_name    = module.eks.cluster_name
-      service_account = "argocd-application-controller"
+    argocd-bitnami = {
+      type      = "helm"
+      url       = "charts.bitnami.com/bitnami"
+      name      = "Bitnami"
+      enableOCI = true
     }
-    server = {
-      cluster_name    = module.eks.cluster_name
-      service_account = "argocd-server"
+    argocd-ecr-credentials = {
+      type      = "helm"
+      url       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.id}.amazonaws.com"
+      name      = "ecr-charts"
+      enableOCI = true
+      username  = "AWS"
+      password  = data.aws_ecr_authorization_token.token.password
     }
   }
-
-  tags = local.tags
+  metadata {
+    name      = each.key
+    namespace = kubernetes_namespace.argocd.metadata[0].name
+    labels = {
+      "argocd.argoproj.io/secret-type" = "repository"
+    }
+  }
+  data = each.value
 }
 
 # Creating parameter for argocd hub role for the spoke clusters to read
 resource "aws_ssm_parameter" "argocd_hub_role" {
-  name  = "/fleet-hub/argocd-hub-role"
+  name  = "/fleet-hub/argocd-hub-role-fargate"
   type  = "String"
   value = module.argocd_hub_pod_identity.iam_role_arn
 }
-
 ################################################################################
 # GitOps Bridge: Bootstrap
 ################################################################################
@@ -73,5 +67,5 @@ module "gitops_bridge_bootstrap" {
     timeout          = 600
     create_namespace = false
   }
-  depends_on = [kubernetes_secret.git_secrets, kubectl_manifest.karpenter_node_pool]
+  depends_on = [kubernetes_secret.git_secrets,kubectl_manifest.karpenter_init_nodepool]
 }

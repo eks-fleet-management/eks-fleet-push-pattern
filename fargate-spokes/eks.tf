@@ -11,6 +11,7 @@ module "eks" {
   cluster_endpoint_public_access = true
   authentication_mode            = "API"
 
+
   # Disabling encryption for workshop purposes
   cluster_encryption_config = {}
 
@@ -110,65 +111,4 @@ module "eks" {
     "karpenter.sh/discovery" = local.name
   })
   tags = local.tags
-}
-
-resource "kubernetes_manifest" "ec2_node_pool" {
-  depends_on = [
-    module.eks,      # Ensure EKS is created first
-    module.karpenter # Ensure Karpenter is deployed
-  ]
-  manifest = {
-    "apiVersion" = "karpenter.sh/v1"
-    "kind"       = "NodePool"
-    "metadata" = {
-      "name" = "platform"
-    }
-    "spec" = {
-      "template" = {
-        "spec" = {
-          "nodeClassRef" = {
-            "group" = "karpenter.k8s.aws"
-            "kind"  = "EC2NodeClass"
-            "name"  = "platform"
-          }
-          "requirements" = [
-            {
-              "key"      = "karpenter.k8s.aws/instance-category"
-              "operator" = "In"
-              "values"   = ["c", "m", "r"]
-            },
-            {
-              "key"      = "karpenter.k8s.aws/instance-cpu"
-              "operator" = "In"
-              "values"   = ["4", "8", "16", "32"]
-            },
-            {
-              "key"      = "karpenter.k8s.aws/instance-hypervisor"
-              "operator" = "In"
-              "values"   = ["nitro"]
-            },
-            {
-              "key"      = "karpenter.k8s.aws/instance-generation"
-              "operator" = "Gt"
-              "values"   = ["2"]
-            }
-          ]
-          "taints" = [
-            {
-              "key"    = "platform"
-              "value"  = "true"
-              "effect" = "NoSchedule"
-            }
-          ]
-        }
-      }
-      "limits" = {
-        "cpu" = "1000"
-      }
-      "disruption" = {
-        "consolidateAfter"    = "30s"
-        "consolidationPolicy" = "WhenEmpty"
-      }
-    }
-  }
 }

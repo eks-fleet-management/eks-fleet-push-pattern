@@ -1,7 +1,8 @@
 global:
   tolerations:
-  - key: "platform"
+  - key: "CriticalAddonsOnly"
     operator: "Exists"
+    effect: "NoSchedule"
 controller:
   env:
     - name: ARGOCD_SYNC_WAVE_DELAY

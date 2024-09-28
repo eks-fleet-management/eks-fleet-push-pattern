@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: platform
+  name: cluster-addons
   namespace: argocd
 spec:
   syncPolicy:
@@ -10,16 +10,16 @@ spec:
   - clusters:
       selector:
         matchLabels:
-          fleet_member: "spoke"
+          environment: control-plane
   template:
     metadata:
-      name: 'platform'
+      name: 'cluster-addons'
     spec:
       project: default
       source:
-        repoURL: '{{metadata.annotations.platform_repo_url}}'
-        path: '{{metadata.annotations.platform_repo_basepath}}{{metadata.annotations.platform_repo_path}}'
-        targetRevision: '{{metadata.annotations.platform_repo_revision}}'
+        repoURL: '{{metadata.annotations.addons_repo_url}}'
+        path: '{{metadata.annotations.addons_repo_basepath}}{{metadata.annotations.addons_repo_path}}'
+        targetRevision: '{{metadata.annotations.addons_repo_revision}}'
         directory:
           recurse: true
       destination:
