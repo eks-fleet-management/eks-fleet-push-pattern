@@ -116,22 +116,7 @@ locals {
     {
       aws_load_balancer_controller_namespace       = local.aws_load_balancer_controller.namespace
       aws_load_balancer_controller_service_account = local.aws_load_balancer_controller.service_account
-    },
-    {
-      addons_repo_url      = "https://github.com/eks-fleet-management/gitops-addons.git"
-      addons_repo_basepath = ""
-      addons_repo_path     = "bootstrap/addons"
-      addons_repo_revision = "gitops-v1"
-      # addons_repo_secret_key = var.secret_name_git_data_addons
-    },
-    # Setings of the gitops manifests repo
-    {
-      manifests_repo_url           = "https://github.com/eks-fleet-management/gitops-addons.git"
-      manifests_repo_basepath      = ""
-      manifests_repo_path          = "bootstrap/manifests"
-      manifests_repo_revision      = "gitops-v1"
-      manifests_manifests_basepath = ""
-    },
+    }
   )
 
   tags = {
